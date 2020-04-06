@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        component: [ssm-env, ssm-secrets-webhook]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: docker
+        uses: docker/build-push-action@v1
+        with:
+          dockerfile: Dockerfile.${{ matrix.component }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: pwillie/${{ matrix.component }}
+          tags: latest

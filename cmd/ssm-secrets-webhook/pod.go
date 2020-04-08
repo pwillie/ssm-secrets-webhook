@@ -100,7 +100,7 @@ func getInitContainers(originalContainers []corev1.Container, podSecurityContext
 			Name:            "copy-ssm-env",
 			Image:           viper.GetString("ssm_env_image"),
 			ImagePullPolicy: corev1.PullPolicy(viper.GetString("ssm_env_image_pull_policy")),
-			Command:         []string{"sh", "-c", "cp /usr/local/bin/ssm-env /mutate/"},
+			Command:         []string{"sh", "-c", "cp /ssm-env /mutate/"},
 			VolumeMounts: []corev1.VolumeMount{
 				{
 					Name:      "ssm-env",

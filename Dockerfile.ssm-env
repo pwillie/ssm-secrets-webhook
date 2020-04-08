@@ -1,16 +1,16 @@
 FROM golang:1.14-alpine AS builder
 
-RUN apk add --no-cache --quiet ca-certificates git make ncurses
+RUN apk add --no-cache --quiet git make ncurses
 
 WORKDIR /src
 ADD . .
 
 RUN make build-ssm-env
 
+# Using alpine as need shell to copy ssm-env to shared volume
 FROM alpine:3.11
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /src/build/ssm-env /usr/local/bin/ssm-env
+COPY --from=builder /src/build/ssm-env /
 
 # Avoid running as root or named user, to satisfy PSPs
 USER 65534

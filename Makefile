@@ -12,7 +12,7 @@ GOARCH ?= amd64
 ## Build binary
 build: build-ssm-env build-ssm-secrets-webhook
 build-%: ; $(info $(M) Running build $*...)
-	go build -o build/$* cmd/$*/*.go
+	go build -ldflags="-w -s" -o build/$* cmd/$*/*.go
 
 ## Run unit tests
 test: ; $(info $(M) Running tests...)

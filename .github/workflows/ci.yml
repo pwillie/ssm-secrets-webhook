@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ master ]
+    tags: [ v* ]
   pull_request:
     branches: [ master ]
 
@@ -17,8 +18,9 @@ jobs:
       - name: docker
         uses: docker/build-push-action@v1
         with:
+          repository: pwillie/${{ matrix.component }}
           dockerfile: Dockerfile.${{ matrix.component }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: pwillie/${{ matrix.component }}
-          tags: latest
+          add_git_labels: true
+          tag_with_ref: true

@@ -9,12 +9,6 @@ RUN make build-ssm-env
 
 FROM alpine:3.11
 
-ARG GIT_COMMIT
-ARG VERSION
-LABEL GIT_COMMIT=$GIT_COMMIT
-LABEL GIT_REPO="https://github.com/pwillie/ssm-env"
-LABEL VERSION=$VERSION
-
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /src/build/ssm-env /usr/local/bin/ssm-env
 

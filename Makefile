@@ -5,12 +5,8 @@
 include Makehelp.mk
 
 CGO_ENABLED ?= 0
-COMMIT ?= $(shell git rev-parse --short HEAD)$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GOOS ?= linux
 GOARCH ?= amd64
-REGISTRY ?= pwillie
-VERSION ?= local
-
 
 ###Build targets
 ## Build binary
@@ -24,12 +20,10 @@ test: ; $(info $(M) Running tests...)
 
 ## Run linting
 lint: ; $(info $(M) Running lint...)
-	go list ./... | grep -v /vendor/ | xargs -L1 golint -set_exit_status
+	go list ./... | xargs -L1 golint -set_exit_status
 
-## Build docker image
+## Build local docker image
 docker: docker-ssm-env docker-ssm-secrets-webhook
 docker-%: ; $(info $(M) Running docker build $*...)
 	docker build -f Dockerfile.$* \
-		--build-arg GIT_COMMIT=$(COMMIT) \
-		--build-arg VERSION=$(VERSION) \
-		-t $(REGISTRY)/$*:$(VERSION) .
+		-t $*:local .

@@ -6,9 +6,7 @@ require (
 	emperror.dev/errors v0.7.0
 	github.com/aws/aws-sdk-go v1.30.4
 	github.com/banzaicloud/bank-vaults v0.0.0-20200323100356-7fadfb8416b0
-	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/google/go-cmp v0.4.0
-	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/prometheus/client_golang v1.5.1
 	github.com/sirupsen/logrus v1.5.0
@@ -22,5 +20,8 @@ require (
 )
 
 replace (
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
+	github.com/heroku/docker-registry-client => github.com/banzaicloud/docker-registry-client v0.0.0-20191118103116-f48ee8de5b3b
+	k8s.io/api => k8s.io/api v0.17.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.17.2
+	k8s.io/client-go => k8s.io/client-go v0.17.2
 )

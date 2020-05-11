@@ -20,6 +20,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -39,7 +42,12 @@ import (
 	kubernetesConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
+const (
+	ec2MetaDataServiceURL = "http://169.254.169.254/latest/dynamic/instance-identity/document"
+)
+
 func init() {
+	viper.SetDefault("aws_region", "")
 	viper.SetDefault("ssm_env_image", "pwillie/ssm-env:latest")
 	viper.SetDefault("ssm_env_image_pull_policy", string(corev1.PullIfNotPresent))
 	viper.SetDefault("ssm_ignore_missing_secrets", "false")
@@ -54,10 +62,40 @@ func hasSsmPrefix(value string) bool {
 	return strings.HasPrefix(value, "ssm:")
 }
 
+func getCurrentAwsRegion(logger logrus.FieldLogger) (string, error) {
+	region := viper.GetString("aws_region")
+
+	if region == "" {
+		logger.Infof("fetching %s", ec2MetaDataServiceURL)
+		res, err := http.Get(ec2MetaDataServiceURL)
+		if err != nil {
+			return "", fmt.Errorf("Error fetching %s", ec2MetaDataServiceURL)
+		}
+
+		defer res.Body.Close()
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return "", fmt.Errorf("Error parsing %s", ec2MetaDataServiceURL)
+		}
+
+		var unmarshalled = map[string]string{}
+		err = json.Unmarshal(body, &unmarshalled)
+		if err != nil {
+			logger.Warnf("Error unmarshalling %s, skip...\n", ec2MetaDataServiceURL)
+		}
+
+		region = unmarshalled["region"]
+	}
+
+	return region, nil
+}
+
 type mutatingWebhook struct {
 	k8sClient kubernetes.Interface
 	registry  registry.ImageRegistry
 	logger    logrus.FieldLogger
+	region    string
 }
 
 func (mw *mutatingWebhook) ssmSecretsMutator(ctx context.Context, obj metav1.Object) (bool, error) {
@@ -242,6 +280,10 @@ func (mw *mutatingWebhook) mutateContainers(containers []corev1.Container, podSp
 				Name:  "SSM_JSON_LOG",
 				Value: viper.GetString("enable_json_log"),
 			},
+			{
+				Name:  "SSM_AWS_REGION",
+				Value: mw.region,
+			},
 		}...)
 
 		containers[i] = container
@@ -305,10 +347,16 @@ func main() {
 		logger.Fatalf("error creating k8s client: %s", err)
 	}
 
+	awsRegion, err := getCurrentAwsRegion(logger)
+	if err != nil {
+		logger.Fatalf("error determining aws region: %s", err)
+	}
+
 	mutatingWebhook := mutatingWebhook{
 		k8sClient: k8sClient,
 		registry:  registry.NewRegistry(),
 		logger:    logger,
+		region:    awsRegion,
 	}
 
 	mutator := mutating.MutatorFunc(mutatingWebhook.ssmSecretsMutator)

@@ -19,10 +19,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -34,10 +31,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-)
-
-const (
-	ec2MetaDataServiceURL = "http://169.254.169.254/latest/dynamic/instance-identity/document"
 )
 
 type sanitizedEnviron []string
@@ -52,9 +45,9 @@ func injectSecretsFromSsm(references map[string]string, inject secretInjectorFun
 	secretCache := make(map[string]*ssm.GetParameterOutput)
 
 	// Create AWS client service
-	region, err := getCurrentAwsRegion(logger)
-	if err != nil {
-		logger.Fatalf("failed to get current AWS region: %s", err)
+	region, present := os.LookupEnv("SSM_AWS_REGION")
+	if !present {
+		logger.Fatal("failed to get current AWS region from environment")
 	}
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config:            aws.Config{Region: aws.String(region)},
@@ -106,35 +99,6 @@ func injectSecretsFromSsm(references map[string]string, inject secretInjectorFun
 	}
 
 	return nil
-}
-
-func getCurrentAwsRegion(logger logrus.FieldLogger) (string, error) {
-	region, present := os.LookupEnv("AWS_REGION")
-
-	if !present {
-		logger.Infof("fetching %s", ec2MetaDataServiceURL)
-		res, err := http.Get(ec2MetaDataServiceURL)
-		if err != nil {
-			return "", fmt.Errorf("Error fetching %s", ec2MetaDataServiceURL)
-		}
-
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return "", fmt.Errorf("Error parsing %s", ec2MetaDataServiceURL)
-		}
-
-		var unmarshalled = map[string]string{}
-		err = json.Unmarshal(body, &unmarshalled)
-		if err != nil {
-			logger.Warnf("Error unmarshalling %s, skip...\n", ec2MetaDataServiceURL)
-		}
-
-		region = unmarshalled["region"]
-	}
-
-	return region, nil
 }
 
 func main() {
